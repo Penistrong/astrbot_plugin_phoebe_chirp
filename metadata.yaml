@@ -1,0 +1,6 @@
+name: astrbot_plugin_phoebe_chirp
+display_name: 菲比啾比语音
+desc: 文字照常发，额外附带一句固定语音「菲比啾比」，可按人格绑定、按情绪自动切换语调
+version: v1.0.0
+author: 菲比
+repo: ""
