@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>菲比啾比 · 角色情绪语音包管理</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <!-- 顶部主标题与状态条 -->
+      <header class="page-head">
+        <div class="page-title-wrap">
+          <h1 id="page-title">菲比啾比 · 角色情绪语音包管理</h1>
+          <p id="page-desc" class="muted">
+            按「基础音色 → 情绪分类」分级存储多条语音，支持绑定多个人设、随机挑选发送、在线试听、上传与引擎一键生成。
+          </p>
+        </div>
+        <div id="status-chips" class="status-chips"></div>
+      </header>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <!-- 置顶试听播放器栏 -->
+      <div id="player-bar" class="player-bar" hidden>
+        <div class="player-info">
+          <span class="player-badge" id="player-badge">试听中</span>
+          <span class="player-title" id="player-title"></span>
+        </div>
+        <audio id="player" class="player-audio" controls></audio>
+        <button id="btn-close-player" class="btn btn-ghost btn-sm" type="button">关闭</button>
+      </div>
+
+      <!-- 导航标签页 -->
+      <nav class="tabs" role="tablist">
+        <button
+          id="tab-voices-btn"
+          class="tab tab-active"
+          type="button"
+          role="tab"
+          data-tab="voices"
+        >
+          情绪语音库管理
+        </button>
+        <button
+          id="tab-samples-btn"
+          class="tab"
+          type="button"
+          role="tab"
+          data-tab="samples"
+        >
+          克隆样本管理
+        </button>
+        <button
+          id="tab-settings-btn"
+          class="tab"
+          type="button"
+          role="tab"
+          data-tab="settings"
+        >
+          合成引擎与全局设置
+        </button>
+      </nav>
+
+      <!-- ==================== 标签页 1：情绪语音库管理（仿表情包管理器） ==================== -->
+      <section id="tab-voices" class="tab-panel" role="tabpanel">
+        <!-- 音色包选择器与操作工具栏 -->
+        <div class="pack-toolbar">
+          <div class="pack-selector-group">
+            <label class="pack-select-label" for="voice-select">当前音色包</label>
+            <select id="voice-select" class="pack-select"></select>
+          </div>
+          <div class="pack-actions">
+            <button id="btn-new-voice" class="btn btn-primary" type="button">+ 新建音色</button>
+            <button id="btn-edit-voice" class="btn" type="button">编辑音色 / 绑定人设</button>
+            <button id="btn-set-default-voice" class="btn" type="button">设为默认</button>
+            <button id="btn-delete-voice" class="btn btn-danger" type="button">删除音色</button>
+          </div>
+        </div>
+
+        <!-- 当前选中音色的概览卡片（台词、引擎、绑定人设） -->
+        <div id="voice-profile-card" class="voice-profile-card"></div>
+
+        <!-- 主体双栏：左侧情绪分类导航 + 右侧语音卡片网格 -->
+        <div class="manager-workspace">
+          <!-- 左侧：情绪分类侧边栏 -->
+          <aside class="mood-sidebar">
+            <div class="sidebar-head">
+              <span>情绪分类目录</span>
+              <button id="btn-new-mood" class="btn btn-sm btn-primary" type="button">
+                + 新增情绪
+              </button>
+            </div>
+            <div id="mood-nav-list" class="mood-nav-list" role="listbox"></div>
+          </aside>
+
+          <!-- 右侧：当前情绪分类详情与语音卡片网格 -->
+          <main class="clip-main">
+            <!-- 情绪分类信息条（展示指令、关键词、编辑按钮） -->
+            <div id="mood-detail-bar" class="mood-detail-bar"></div>
+
+            <!-- 语音操作工具栏：生成、上传、多选批量操作 -->
+            <div class="clip-toolbar">
+              <div class="clip-toolbar-left">
+                <button id="btn-gen-clip" class="btn btn-primary" type="button">
+                  ✨ 引擎生成新语音
+                </button>
+                <button id="btn-gen-all-moods" class="btn" type="button">
+                  ⚡ 一键补齐各情绪语音
+                </button>
+                <button id="btn-upload-clip" class="btn" type="button">
+                  📤 上传本地语音
+                </button>
+              </div>
+              <div class="clip-toolbar-right">
+                <label class="inline-check">
+                  <input id="chk-select-all" type="checkbox" />
+                  <span>全选</span>
+                </label>
+                <button id="btn-batch-enable" class="btn btn-sm" type="button" disabled>
+                  批量启用
+                </button>
+                <button id="btn-batch-disable" class="btn btn-sm" type="button" disabled>
+                  批量禁用
+                </button>
+                <button
+                  id="btn-batch-delete"
+                  class="btn btn-sm btn-danger"
+                  type="button"
+                  disabled
+                >
+                  批量删除
+                </button>
+              </div>
+            </div>
+
+            <!-- 语音卡片网格 -->
+            <div id="clips-grid" class="clips-grid" role="list"></div>
+            <p id="clips-empty" class="empty" hidden></p>
+          </main>
+        </div>
+      </section>
+
+      <!-- ==================== 标签页 2：克隆参考样本管理 ==================== -->
+      <section id="tab-samples" class="tab-panel" role="tabpanel" hidden>
+        <div class="panel-head">
+          <div>
+            <h3 class="section-title">音色克隆参考音频样本</h3>
+            <p class="muted">
+              上传 10~20 秒清晰无背景音乐的人声录音（支持 wav / mp3），即可在音色配置中选择该样本进行阿里云百炼或小米 MiMo 零样本声音复刻。
+            </p>
+          </div>
+          <button id="btn-upload-sample" class="btn btn-primary" type="button">
+            📤 上传参考音频样本
+          </button>
+        </div>
+        <div id="samples-list" class="list" role="list"></div>
+        <p id="samples-empty" class="empty" hidden></p>
+      </section>
+
+      <!-- ==================== 标签页 3：合成引擎与全局设置 ==================== -->
+      <section id="tab-settings" class="tab-panel" role="tabpanel" hidden>
+        <div class="panel-head">
+          <div>
+            <h3 class="section-title">合成引擎与全局触发策略</h3>
+            <p class="muted">
+              配置全局默认 TTS 合成引擎（如阿里云百炼 API Key、模型）以及情绪语音触发概率、冷却和发送方式。
+            </p>
+          </div>
+          <button id="btn-save-settings" class="btn btn-primary" type="button">
+            💾 保存全局设置
+          </button>
+        </div>
+
+        <div class="settings-grid">
+          <div class="settings-card">
+            <h4>触发与发送规则</h4>
+            <div class="fields">
+              <label class="field-check">
+                <input id="set-enable" type="checkbox" />
+                <span>启用菲比啾比角色情绪语音插件</span>
+              </label>
+              <label class="field-check">
+                <input id="set-auto-mood" type="checkbox" />
+                <span>根据回复内容关键词自动识别情绪分类</span>
+              </label>
+              <label class="field-check">
+                <input id="set-auto-gen" type="checkbox" />
+                <span>当命中的情绪目录为空时，自动调用合成引擎生成并保存</span>
+              </label>
+
+              <label class="field">
+                <span class="field-label">默认固定台词</span>
+                <input id="set-chirp-text" type="text" placeholder="菲比啾比" />
+                <span class="field-hint">新建音色时的默认念白，每个音色可单独覆盖</span>
+              </label>
+
+              <div class="field-row">
+                <label class="field">
+                  <span class="field-label">触发概率（0 - 100%）</span>
+                  <input id="set-probability" type="number" min="0" max="100" />
+                </label>
+                <label class="field">
+                  <span class="field-label">同会话冷却时间（秒）</span>
+                  <input id="set-cooldown" type="number" min="0" />
+                </label>
+              </div>
+
+              <div class="field-row">
+                <label class="field">
+                  <span class="field-label">语音发送方式</span>
+                  <select id="set-send-mode">
+                    <option value="append">追加在文字尾部（同一条消息）</option>
+                    <option value="prepend">置于文字开头（同一条消息）</option>
+                    <option value="separate">文字发出后单独补发一条语音</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">固定情绪（关闭自动识别时生效）</span>
+                  <select id="set-fixed-mood">
+                    <option value="random">随机挑选情绪</option>
+                    <option value="happy">开心 (happy)</option>
+                    <option value="angry">生气 (angry)</option>
+                    <option value="sleepy">困倦 (sleepy)</option>
+                    <option value="sneer">嘲讽 (sneer)</option>
+                    <option value="shy">害羞 (shy)</option>
+                    <option value="surprise">惊讶 (surprise)</option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="field">
+                <span class="field-label">跳过规则（每行一条正则表达式）</span>
+                <textarea
+                  id="set-skip-patterns"
+                  rows="3"
+                  placeholder="例如：```[\s\S]*```"
+                ></textarea>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h4>默认语音合成引擎配置</h4>
+            <div class="fields">
+              <label class="field">
+                <span class="field-label">默认引擎类型</span>
+                <select id="set-engine-type">
+                  <option value="aliyun">阿里云百炼 (Qwen-Audio / CosyVoice)</option>
+                  <option value="openai_compat">OpenAI 兼容接口 (/v1/audio/speech)</option>
+                  <option value="mimo">小米 MiMo (V2.5 / VoiceClone)</option>
+                  <option value="custom_http">自定义 HTTP 引擎</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span class="field-label">API Key</span>
+                <input id="set-api-key" type="password" placeholder="sk-..." />
+                <span id="set-api-key-hint" class="field-hint">DashScope 或对应服务的密钥</span>
+              </label>
+
+              <label class="field">
+                <span class="field-label">API Base URL</span>
+                <input
+                  id="set-api-base"
+                  type="text"
+                  placeholder="https://dashscope.aliyuncs.com/api/v1"
+                />
+              </label>
+
+              <div class="field-row">
+                <label class="field">
+                  <span class="field-label">默认模型</span>
+                  <input id="set-model" type="text" placeholder="qwen-audio-3.1-tts-flash" />
+                </label>
+                <label class="field">
+                  <span class="field-label">系统预置兜底音色</span>
+                  <input id="set-default-voice" type="text" placeholder="longanhuan_v3.1" />
+                </label>
+              </div>
+
+              <label class="field">
+                <span class="field-label">全局复刻音色 ID（可选，优先于预置音色）</span>
+                <input
+                  id="set-voice-id"
+                  type="text"
+                  placeholder="如 qwen-audio-3.1-tts-flash-phoebe-xxx（也可在每个音色中单独配置）"
+                />
+              </label>
+
+              <div class="field-row">
+                <label class="field">
+                  <span class="field-label">输出格式</span>
+                  <select id="set-format">
+                    <option value="wav">wav</option>
+                    <option value="mp3">mp3</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">采样率（Hz）</span>
+                  <input id="set-sample-rate" type="number" value="24000" />
+                </label>
+              </div>
+
+              <div class="field-row-3">
+                <label class="field">
+                  <span class="field-label">音量 (0-100)</span>
+                  <input id="set-volume" type="number" min="0" max="100" />
+                </label>
+                <label class="field">
+                  <span class="field-label">语速 (0.5-2.0)</span>
+                  <input id="set-speech-rate" type="number" step="0.1" min="0.5" max="2.0" />
+                </label>
+                <label class="field">
+                  <span class="field-label">音调 (0.5-2.0)</span>
+                  <input id="set-pitch" type="number" step="0.1" min="0.5" max="2.0" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ==================== 弹窗 1：新建 / 编辑基础音色与人设绑定 ==================== -->
+    <dialog id="voice-dialog" class="modal">
+      <div class="modal-head">
+        <h2 id="voice-dialog-title">编辑音色</h2>
+        <button id="btn-voice-dialog-close" class="btn btn-ghost" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="voice-dialog-error" class="banner" hidden></div>
+        <div class="fields">
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">音色 ID（英文/数字标识）</span>
+              <input id="vd-id" type="text" placeholder="如 phoebe（留空自动生成）" />
+            </label>
+            <label class="field">
+              <span class="field-label">音色显示名称 *</span>
+              <input id="vd-name" type="text" placeholder="如 菲比啾比" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">角色固定口癖台词 *</span>
+              <input id="vd-chirp-text" type="text" placeholder="菲比啾比" />
+              <span class="field-hint">该音色合成情绪语音时念出的台词</span>
+            </label>
+            <label class="field">
+              <span class="field-label">合成引擎类型</span>
+              <select id="vd-engine-type">
+                <option value="aliyun">阿里云百炼 (Qwen-Audio / CosyVoice)</option>
+                <option value="openai_compat">OpenAI 兼容接口 (/v1/audio/speech)</option>
+                <option value="mimo">小米 MiMo (V2.5 / VoiceClone)</option>
+                <option value="custom_http">自定义 HTTP 引擎</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field-check">
+              <input id="vd-enabled" type="checkbox" checked />
+              <span>启用该音色包</span>
+            </label>
+            <label class="field-check">
+              <input id="vd-is-default" type="checkbox" />
+              <span>设为默认音色包</span>
+            </label>
+          </div>
+
+          <!-- 绑定多个人设 -->
+          <div class="field">
+            <span class="field-label">绑定的人设（Persona）列表（支持绑定多个人设）</span>
+            <div id="vd-persona-chips" class="persona-chips"></div>
+            <input
+              id="vd-personas-input"
+              type="text"
+              placeholder="点击上方人设标签快速勾选，或手动输入人设名称（多个用逗号分隔；留空表示默认音色不限人设）"
+            />
+            <span class="field-hint">
+              当会话当前人设命中此列表时，将自动使用本音色包的情绪语音。
+            </span>
+          </div>
+
+          <hr class="divider" />
+          <h4 class="sub-heading">音色来源配置（复刻样本 / 已有 Voice ID / 系统音色）</h4>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">克隆参考音频样本（推荐）</span>
+              <select id="vd-sample-name"></select>
+              <span class="field-hint">选择已上传的音频样本，引擎将自动复刻并缓存专属 voice_id</span>
+            </label>
+            <label class="field">
+              <span class="field-label">或：公网参考音频 URL（可选）</span>
+              <input id="vd-sample-url" type="text" placeholder="https://.../sample.wav" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">已有复刻音色 ID（voice_id，可选）</span>
+              <input
+                id="vd-voice-id"
+                type="text"
+                placeholder="若已有百炼复刻 voice_id 可直接填入跳过复刻"
+              />
+            </label>
+            <label class="field">
+              <span class="field-label">系统兜底音色（default_voice，可选）</span>
+              <input id="vd-default-voice" type="text" placeholder="留空继承全局 (longanhuan_v3.1)" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">模型覆盖（可选）</span>
+              <input id="vd-model" type="text" placeholder="留空继承全局 (qwen-audio-3.1-tts-flash)" />
+            </label>
+            <label class="field">
+              <span class="field-label">复刻音色前缀（字母数字 ≤10位）</span>
+              <input id="vd-voice-prefix" type="text" placeholder="phoebe" />
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="btn-voice-dialog-cancel" class="btn" type="button">取消</button>
+        <button id="btn-voice-dialog-save" class="btn btn-primary" type="button">保存音色</button>
+      </div>
+    </dialog>
+
+    <!-- ==================== 弹窗 2：新建 / 编辑情绪分类 ==================== -->
+    <dialog id="mood-dialog" class="modal">
+      <div class="modal-head">
+        <h2 id="mood-dialog-title">编辑情绪分类</h2>
+        <button id="btn-mood-dialog-close" class="btn btn-ghost" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="mood-dialog-error" class="banner" hidden></div>
+        <div class="fields">
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">情绪英文标识（目录名）*</span>
+              <input id="md-key" type="text" placeholder="如 happy, angry, excited" />
+            </label>
+            <label class="field">
+              <span class="field-label">情绪中文名称 *</span>
+              <input id="md-label" type="text" placeholder="如 开心、生气、撒娇" />
+            </label>
+          </div>
+
+          <label class="field-check">
+            <input id="md-enabled" type="checkbox" checked />
+            <span>启用该情绪分类（禁用后自动识别情绪时将跳过此分类）</span>
+          </label>
+
+          <label class="field">
+            <span class="field-label">语音合成语气指令（Instruction）*</span>
+            <textarea
+              id="md-instruction"
+              rows="3"
+              placeholder="例如：用非常开心、雀跃、忍不住笑出来的语气，语速稍快，尾音上扬"
+            ></textarea>
+            <span class="field-hint">
+              阿里云百炼 qwen-audio-3.1-tts-flash / cosyvoice-v3-flash 等模型会根据此自然语言指令控制说话语气。
+            </span>
+          </label>
+
+          <label class="field">
+            <span class="field-label">触发关键词列表（逗号或换行分隔）</span>
+            <textarea
+              id="md-keywords"
+              rows="3"
+              placeholder="哈哈, 嘿嘿, 太好了, 笑死, 开心, 不错"
+            ></textarea>
+            <span class="field-hint">
+              当大模型回复文本中包含这些关键词时，会优先匹配该情绪并随机发送此目录下的语音。
+            </span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="btn-mood-dialog-delete" class="btn btn-danger" type="button" hidden>
+          删除此情绪分类
+        </button>
+        <div class="modal-foot-right">
+          <button id="btn-mood-dialog-cancel" class="btn" type="button">取消</button>
+          <button id="btn-mood-dialog-save" class="btn btn-primary" type="button">保存情绪</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- ==================== 弹窗 3：使用引擎生成新语音 ==================== -->
+    <dialog id="gen-dialog" class="modal">
+      <div class="modal-head">
+        <h2 id="gen-dialog-title">✨ 使用引擎合成情绪语音</h2>
+        <button id="btn-gen-dialog-close" class="btn btn-ghost" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="gen-dialog-error" class="banner" hidden></div>
+        <div class="fields">
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">目标情绪分类</span>
+              <select id="gd-mood"></select>
+            </label>
+            <label class="field">
+              <span class="field-label">生成条数（1 - 5 条，方便随机挑选）</span>
+              <input id="gd-count" type="number" min="1" max="5" value="1" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field-label">合成台词文本（可临时微调或加富语言标签）</span>
+            <input
+              id="gd-text"
+              type="text"
+              placeholder="如：菲比啾比 或 [excited]菲比啾比~[laughing]"
+            />
+            <span class="field-hint">
+              支持 qwen-audio-3.1-tts-flash 富语言标签，如 [excited]、[sad]、[whispers]、[laughing]、[sighing]
+            </span>
+          </label>
+
+          <label class="field">
+            <span class="field-label">语气指令（Instruction，可微调本次生成语气）</span>
+            <textarea id="gd-instruction" rows="3"></textarea>
+          </label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="btn-gen-dialog-cancel" class="btn" type="button">取消</button>
+        <button id="btn-gen-dialog-submit" class="btn btn-primary" type="button">
+          开始合成并入库
+        </button>
+      </div>
+    </dialog>
+
+    <!-- ==================== 弹窗 4：通用确认框 ==================== -->
+    <dialog id="confirm-dialog" class="modal modal-sm">
+      <div class="modal-head">
+        <h2>确认操作</h2>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message" class="confirm-message"></p>
+      </div>
+      <div class="modal-foot">
+        <button id="btn-confirm-cancel" class="btn" type="button">取消</button>
+        <button id="btn-confirm-ok" class="btn btn-danger" type="button">确定</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

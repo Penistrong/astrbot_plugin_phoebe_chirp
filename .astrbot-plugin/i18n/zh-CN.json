@@ -1,0 +1,10 @@
+{
+  "metadata": {
+    "display_name": "菲比啾比情绪语音包"
+  },
+  "views": {
+    "voices": {
+      "title": "情绪语音包管理"
+    }
+  }
+}

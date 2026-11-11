@@ -1,113 +1,130 @@
 {
   "enable": {
-    "description": "启用菲比啾比语音",
+    "description": "启用角色情绪语音插件",
     "type": "bool",
-    "hint": "开启后，每次正常回复会额外附带一句「菲比啾比」语音，文字内容照常发送。",
-    "default": true
+    "hint": "开启后，匹配绑定人设的回复会附带对应情绪语调的角色语音（如「菲比啾比」），正文内容照常发送。",
+    "default": true,
+    "obvious_hint": true
   },
   "chirp_text": {
-    "description": "固定念出的文本",
+    "description": "默认固定台词",
     "type": "string",
-    "hint": "默认「菲比啾比」，改了就念别的。",
+    "hint": "默认音色念出的固定台词（默认「菲比啾比」）。可在 WebUI 管理页为每个音色单独设置台词。",
     "default": "菲比啾比"
   },
   "persona_ids": {
-    "description": "绑定的人格 ID 列表",
+    "description": "默认音色绑定的人设列表",
     "type": "list",
-    "hint": "留空表示全部人格生效；填写人格 ID（如 SnowLuma_FriendMessage_770560618 所使用的人格）后，只有该会话当前生效的人格在列表内才会说话。",
+    "hint": "留空表示默认音色对全部未单独绑定的人设生效；可在 WebUI 管理页创建多个音色并分别为每个音色绑定多个人设。",
     "default": []
   },
   "probability": {
     "description": "触发概率（%）",
     "type": "int",
-    "hint": "100 为每次都带语音，设成 30 就是三成概率。",
+    "hint": "0-100，100 表示每次匹配都附带语音，设为 30 即 30% 概率触发。",
     "default": 100
   },
   "cooldown_seconds": {
-    "description": "同一会话冷却（秒）",
+    "description": "同一会话冷却时间（秒）",
     "type": "int",
-    "hint": "连发多条时避免语音刷屏，0 表示不限制。",
+    "hint": "连续回复时避免语音刷屏，0 表示不限制。",
     "default": 0
   },
   "send_mode": {
-    "description": "发送方式",
+    "description": "语音发送方式",
     "type": "string",
-    "options": ["append", "separate"],
-    "labels": ["与文字合成一条消息", "文字之后单独发一条语音"],
-    "hint": "部分适配器不支持图文混排，混排失败就换成 separate。",
+    "options": ["append", "prepend", "separate"],
+    "labels": ["追加在文字尾部（同一条消息）", "置于文字开头（同一条消息）", "文字发出后单独补发一条语音"],
+    "hint": "部分平台适配器不支持文字与语音同条混排，若混排失败请切换为 separate。",
     "default": "append"
   },
   "auto_mood": {
-    "description": "按回复内容自动选情绪",
+    "description": "按回复内容自动识别情绪",
     "type": "bool",
-    "hint": "开启后根据回复里的关键词挑语调（开心 / 生气 / 困 / 嘲讽 / 害羞 / 惊讶）。",
+    "hint": "开启后根据回复文本命中的情绪关键词挑选情绪分类；同情绪目录下有多条已启用语音时随机挑选一条发送。",
     "default": true
   },
   "fixed_mood": {
-    "description": "固定情绪",
+    "description": "固定情绪（关闭自动识别时生效）",
     "type": "string",
     "options": ["random", "happy", "angry", "sleepy", "sneer", "shy", "surprise"],
-    "labels": ["随机", "开心", "生气", "困", "嘲讽", "害羞", "惊讶"],
-    "hint": "关闭自动选情绪时使用。",
+    "labels": ["随机", "开心", "生气", "困倦", "嘲讽", "害羞", "惊讶"],
+    "hint": "关闭「按回复内容自动识别情绪」时使用。",
     "default": "random"
   },
+  "auto_generate_when_empty": {
+    "description": "情绪目录为空时自动调用引擎合成",
+    "type": "bool",
+    "hint": "开启后，若命中的情绪目录下还没有任何语音文件，会自动调用合成引擎生成一条并缓存到该目录；若目录内已有语音但被全部手动禁用，则不会自动生成。",
+    "default": true
+  },
   "skip_patterns": {
-    "description": "跳过规则（正则）",
+    "description": "跳过规则（正则表达式）",
     "type": "list",
-    "hint": "回复文本命中任一条就不发语音，例如 ^\\[图片\\]、代码块等。",
+    "hint": "回复文本命中任意一条正则时不发送附加语音（如代码块、纯报错信息等）。",
     "default": []
   },
-  "api_key": {
-    "description": "阿里云百炼 API Key",
+  "engine_type": {
+    "description": "默认语音合成引擎",
     "type": "string",
-    "hint": "DashScope 的 sk- 开头的 Key，用于合成语音。",
+    "options": ["aliyun", "openai_compat", "mimo", "custom_http"],
+    "labels": ["阿里云百炼 (Qwen-Audio / CosyVoice)", "OpenAI 兼容 (/v1/audio/speech)", "小米 MiMo (V2.5 / VoiceClone)", "自定义 HTTP 引擎"],
+    "hint": "合成情绪语音所使用的默认引擎类型，每个音色也可在 WebUI 中单独指定。",
+    "default": "aliyun"
+  },
+  "api_key": {
+    "description": "默认引擎 API Key",
+    "type": "string",
+    "hint": "阿里云百炼 DashScope API Key（sk- 开头）或对应引擎的密钥。",
     "default": ""
   },
   "api_base": {
-    "description": "接口地址",
+    "description": "默认引擎接口地址",
     "type": "string",
+    "hint": "阿里云百炼默认为 https://dashscope.aliyuncs.com/api/v1，也可填百炼专属域名。",
     "default": "https://dashscope.aliyuncs.com/api/v1"
   },
   "model": {
-    "description": "模型",
+    "description": "默认合成模型",
     "type": "string",
+    "hint": "如 qwen-audio-3.1-tts-flash、qwen-audio-3.1-tts-plus、cosyvoice-v3-flash。",
     "default": "qwen-audio-3.1-tts-flash"
   },
   "voice_id": {
-    "description": "音色 ID",
+    "description": "默认音色 ID（复刻音色 ID）",
     "type": "string",
-    "hint": "声音复刻得到的 voice_id，留空则使用下面的默认音色。",
+    "hint": "阿里云百炼声音复刻得到的 voice_id；留空则使用克隆参考音频样本或下方的系统默认音色。",
     "default": ""
   },
   "default_voice": {
-    "description": "默认音色",
+    "description": "系统预置兜底音色",
     "type": "string",
-    "hint": "voice_id 为空时使用，例如 longanhuan_v3.1。",
+    "hint": "未填复刻 voice_id 且未配置克隆样本时使用，例如 longanhuan_v3.1。",
     "default": "longanhuan_v3.1"
   },
   "format": {
-    "description": "音频格式",
+    "description": "合成音频格式",
     "type": "string",
     "options": ["wav", "mp3"],
     "default": "wav"
   },
   "sample_rate": {
-    "description": "采样率",
+    "description": "采样率（Hz）",
     "type": "int",
     "default": 24000
   },
   "volume": {
-    "description": "音量",
+    "description": "音量（0-100）",
     "type": "int",
     "default": 50
   },
   "speech_rate": {
-    "description": "语速",
+    "description": "语速（0.5-2.0）",
     "type": "float",
     "default": 1.0
   },
   "pitch": {
-    "description": "音调",
+    "description": "音调（0.5-2.0）",
     "type": "float",
     "default": 1.0
   }

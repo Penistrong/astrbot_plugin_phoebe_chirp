@@ -1,37 +1,62 @@
-# 菲比啾比语音
+# 菲比啾比 · 角色情绪语音包插件 (`astrbot_plugin_phoebe_chirp`)
 
-文字照常发，额外附带一句固定语音「菲比啾比」；语调按回复情绪自动切换，音频本地缓存，缺了才调 Qwen-Audio-TTS 现合成。
+文字照常发送，根据大模型回复文本中蕴含的情绪，在消息前后追加（或单独补发）一句带有对应情绪语气的角色口癖语音（如「菲比啾比」）。
 
-## 工作原理
+支持 **按「音色 → 情绪类别」分级目录管理**、**单音色绑定多个人设**、**同情绪多语音随机发送**、**模块化语音合成引擎（含阿里云百炼零样本声音复刻）**，以及参考 `astrbot_plugin_meme_manager` 设计的 **WebUI 情绪语音包管理界面**。
 
-1. 挂在 `on_decorating_result`（发送前）钩子，不改动任何文字组件。
-2. 判断当前会话**实际生效的人格**：会话规则 > 会话配置 > 默认人格，再和 `persona_ids` 比对。
-3. 按回复文本里的关键词挑一个情绪（开心 / 生气 / 困 / 嘲讽 / 害羞 / 惊讶），从 `data/plugin_data/astrbot_plugin_phoebe_chirp/voice/<mood>.wav` 取音频。
-4. `send_mode=append` 时把 `Record` 追加到消息链尾部，文字和语音同一条发出；`separate` 时在文字发出后补一条语音。
+---
 
-## 配置要点
+## ✨ 核心功能
 
-| 项 | 说明 |
-| --- | --- |
-| `enable` | 总开关 |
-| `persona_ids` | 绑人格，填人格 ID（如 `菲比啾比-Phoebe`），留空表示全部人格 |
-| `probability` / `cooldown_seconds` | 触发概率、同会话冷却，防止刷屏 |
-| `send_mode` | 适配器不支持图文混排时改成 `separate` |
-| `auto_mood` / `fixed_mood` | 情绪自动判定，或固定某一种 |
-| `api_key` / `voice_id` / `model` | DashScope 凭据与音色 |
+1. **模块化语音合成引擎 (`engines/`)**
+   - 抽象统一的 `ChirpTTSEngine` 基类与 `create_engine` / `register_engine` 工厂机制。
+   - **阿里云百炼 (`aliyun`)**：支持 `qwen-audio-3.1-tts-flash`、`qwen-audio-3.1-tts-plus`、`cosyvoice-v3-flash` 等模型及自然语言 `instruction` 语气控制；内置**零样本声音复刻 (`voice-enrollment`)** 与本地持久化音色缓存（`aliyun_cloned_voices.json`），上传一段参考音频即可自动复刻并复用 `voice_id`。
+   - **扩展引擎**：同时内置 OpenAI 兼容接口 (`openai_compat`)、小米 MiMo 语音合成与克隆 (`mimo`)、自定义 HTTP 模板引擎 (`custom_http`)，后续接入新 API 只需在 `engines/` 下新增子类并注册。
 
-## 指令
+2. **「音色 - 情绪分类 - 多语音」分级存储与多人设绑定 (`storage.py`)**
+   - 目录结构：
+     ```text
+     data/plugin_data/astrbot_plugin_phoebe_chirp/
+     ├── voices_registry.json          # 音色包、人设绑定、情绪指令与语音启停注册表
+     ├── aliyun_cloned_voices.json     # 阿里云百炼复刻音色持久化缓存
+     ├── samples/                      # 声音复刻参考音频样本 (*.wav / *.mp3)
+     └── voices/
+         ├── phoebe/                   # 基础音色 ID（可绑定多个人设，如 ["菲比啾比-Phoebe", "菲比"]）
+         │   ├── happy/                # 情绪分类目录（可存放多条语音，触发时随机挑选一条已启用语音）
+         │   │   ├── happy_001.wav
+         │   │   └── happy_002.wav
+         │   ├── angry/
+         │   ├── sleepy/
+         │   ├── sneer/
+         │   ├── shy/
+         │   └── surprise/
+         └── zani/                     # 第二个基础音色（可设置专属台词、专属克隆样本与绑定人设）
+     ```
+   - **旧版自动迁移**：首次启动时会自动将 v1.0 旧版 `voice/<mood>.wav` 无损迁移至 `voices/phoebe/<mood>/<mood>_001.wav`。
+   - **多语音随机选择**：每个情绪目录下可存放任意数量的语音文件；发送时从该情绪下**处于「启用」状态**的语音中随机挑选一条发送。若该情绪下所有语音均被手动禁用，则跳过发送且不会违背用户意愿自动合成。
 
-- `/啾比` 查看状态（当前人格、概率、缓存条数）
-- `/啾比 on` / `/啾比 off` 开关
-- `/啾比 regen` 清缓存，下次回复重新合成
+3. **仿表情包管理器的 WebUI 可视化管理页 (`views/voices/`)**
+   - 进入 AstrBot 管理后台 → 插件页面 → **菲比啾比情绪语音包** 打开 WebUI：
+     - **顶部音色包切换栏**：切换/新建/编辑/删除基础音色，支持一键点选绑定系统中已有的人设（支持多选）或手动输入人设名。
+     - **左侧情绪分类目录树**：展示各情绪分类的启用状态、关键词数及「已启用/总语音数」角标，支持新增/编辑/删除自定义情绪分类、修改合成语气指令（Instruction）与触发关键词。
+     - **右侧语音卡片网格**：
+       - **在线试听**：点击卡片上的 `▶ 试听` 即可在页面置顶播放器中试听；
+       - **新增语音**：支持 **📤 上传本地语音文件**，或点击 **✨ 引擎生成新语音**（支持自定义台词、富语言标签如 `[excited]`、微调语气指令及一次生成 1~5 条不同随机样本），也可点击 **⚡ 一键补齐各情绪语音**；
+       - **启用/禁用与跨分类整理**：支持单条或勾选批量启用、批量禁用、批量删除，以及将某条语音一键移动到其他情绪目录。
 
-## 换音色 / 换念的内容
+---
 
-改 `chirp_text` 就念别的；换 `voice_id` 后执行 `/啾比 regen` 让缓存重建。
+## 🎮 聊天指令
 
-## 目录
+- `/啾比` 或 `/啾比 status`：查看当前开关、当前会话人设、匹配到的音色包及有效语音数量
+- `/啾比 voices`：列出所有已配置的基础音色包、绑定人设与语音统计
+- `/啾比 gen [音色ID] [情绪]`：调用合成引擎为指定音色生成情绪语音
+- `/啾比 on` / `/啾比 off`：开启或关闭角色情绪语音
 
-```
-data/plugin_data/astrbot_plugin_phoebe_chirp/voice/*.wav   # 情绪音频缓存
+---
+
+## 🧪 运行测试
+
+```bash
+python3 tests/test_plugin.py
 ```

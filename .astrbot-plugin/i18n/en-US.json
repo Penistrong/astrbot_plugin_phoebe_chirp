@@ -1,0 +1,10 @@
+{
+  "metadata": {
+    "display_name": "Phoebe Chirp Voice Manager"
+  },
+  "views": {
+    "voices": {
+      "title": "Voice Pack Manager"
+    }
+  }
+}

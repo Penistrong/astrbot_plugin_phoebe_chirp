@@ -1,6 +1,22 @@
 name: astrbot_plugin_phoebe_chirp
-display_name: 菲比啾比语音
-desc: 文字照常发，额外附带一句固定语音「菲比啾比」，可按人格绑定、按情绪自动切换语调
-version: v1.0.0
+display_name: 菲比啾比情绪语音包
+short_desc: 按音色与情绪分类管理角色口癖语音，支持多音色绑定多人设、多语音随机发送与 WebUI 可视化试听管理
+desc: 文字照常发送，按回复蕴含的情绪在消息前后追加角色情绪口癖语音（如「菲比啾比」）。支持按「音色-情绪类别」分级存储多条语音并随机挑选发送，每个音色可绑定多个人设，内置模块化语音合成引擎（支持阿里云百炼声音复刻等）及仿表情包管理器的 WebUI 试听/上传/生成/启停管理界面。
+version: 2.0.0
 author: 菲比
-repo: ""
+repo: https://github.com/asyncchen/astrbot_plugin_phoebe_chirp
+astrbot_version: ">=4.25.0"
+help: |
+  所有指令以 / 开头，完整可视化管理请打开插件 WebUI「情绪语音包管理」页面：
+  /啾比 status - 查看开关状态、当前会话人设及匹配的音色包统计
+  /啾比 voices - 列出全部基础音色、绑定人设与各情绪语音数量
+  /啾比 gen [音色ID] [情绪] - 调用引擎为指定音色合成补齐情绪语音
+  /啾比 on / off - 开启或关闭菲比啾比情绪语音
+category: 语音
+tags:
+  - 语音包
+  - 菲比啾比
+  - 情绪语音
+  - 声音复刻
+  - 阿里云百炼
+  - WebUI
