@@ -60,3 +60,10 @@
 ```bash
 python3 tests/test_plugin.py
 ```
+
+---
+
+## 📜 更新日志
+
+版本迭代记录请查看 [CHANGELOG.md](CHANGELOG.md)。
+
